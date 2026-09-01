@@ -11,4 +11,9 @@ const router = Router();
  */
 router.post("/moneyfusion", asyncHandler(moneyFusionWebhook));
 
+// Moneyfusion may ping the webhook URL with a GET request
+router.get("/moneyfusion", (_req, res) => {
+  res.status(200).send("Webhook endpoint is active");
+});
+
 export default router;

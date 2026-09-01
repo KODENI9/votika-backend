@@ -15,6 +15,9 @@ router.get(
     res.json({
       voteUnitPrice: settings.voteUnitPrice,
       campaignActive: settings.campaignActive,
+      campaignEndDate: settings.campaignEndDate 
+        ? (typeof settings.campaignEndDate === "string" ? settings.campaignEndDate : settings.campaignEndDate.toDate().toISOString()) 
+        : undefined,
     });
   })
 );

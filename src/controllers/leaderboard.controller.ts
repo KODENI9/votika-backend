@@ -8,7 +8,9 @@ import { asyncHandler } from "../utils/ApiError";
 
 /** GET /api/leaderboard */
 export const getLeaderboardHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { page = 1, limit = 20 } = req.query as { page?: number; limit?: number };
-  const entries = await getLeaderboard({ page: Number(page), limit: Number(limit) });
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 20;
+  
+  const entries = await getLeaderboard({ page, limit });
   res.json({ data: entries, count: entries.length });
 });

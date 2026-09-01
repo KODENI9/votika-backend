@@ -1,4 +1,4 @@
-import type { Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { db, FieldValue } from "../config/firebase";
 import { env } from "../config/env";
 
@@ -9,8 +9,8 @@ import { env } from "../config/env";
 export interface Settings {
   voteUnitPrice: number;       // price per vote in FCFA
   campaignActive: boolean;
-  campaignStartDate?: Timestamp;
-  campaignEndDate?: Timestamp;
+  campaignStartDate?: Timestamp | string; // Accept string as fallback if data is malformed
+  campaignEndDate?: Timestamp | string;
 }
 
 const COLLECTION = "settings";
@@ -31,7 +31,22 @@ export async function getSettings(): Promise<Settings> {
     await docRef().set(defaults);
     return defaults;
   }
-  return snap.data() as Settings;
+  
+  const data = snap.data() as Settings;
+  
+  // If campaign is marked active but end date is passed, consider it inactive
+  if (data.campaignActive && data.campaignEndDate) {
+    const now = Date.now();
+    const endDate = typeof data.campaignEndDate === "string" 
+      ? new Date(data.campaignEndDate).getTime() 
+      : (data.campaignEndDate as Timestamp).toMillis();
+      
+    if (now > endDate) {
+      data.campaignActive = false;
+    }
+  }
+  
+  return data;
 }
 
 /**
@@ -56,16 +71,18 @@ export async function updateSettings(
     updates["campaignActive"] = data.campaignActive;
   }
   if (data.campaignStartDate !== undefined) {
-    updates["campaignStartDate"] =
-      data.campaignStartDate === null
-        ? FieldValue.delete()
-        : data.campaignStartDate;
+    if (data.campaignStartDate === null) {
+      updates["campaignStartDate"] = FieldValue.delete();
+    } else {
+      updates["campaignStartDate"] = Timestamp.fromDate(new Date(data.campaignStartDate));
+    }
   }
   if (data.campaignEndDate !== undefined) {
-    updates["campaignEndDate"] =
-      data.campaignEndDate === null
-        ? FieldValue.delete()
-        : data.campaignEndDate;
+    if (data.campaignEndDate === null) {
+      updates["campaignEndDate"] = FieldValue.delete();
+    } else {
+      updates["campaignEndDate"] = Timestamp.fromDate(new Date(data.campaignEndDate));
+    }
   }
 
   await docRef().update(updates);

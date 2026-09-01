@@ -17,13 +17,16 @@ import { asyncHandler } from "../utils/ApiError";
 
 /** GET /api/creators — list active creators with optional filters */
 export const listCreators = asyncHandler(async (req: Request, res: Response) => {
-  const { category, country, search, page, limit } = req.query as {
+  const { category, country, search } = req.query as {
     category?: string;
     country?: string;
     search?: string;
-    page?: number;
-    limit?: number;
   };
+  const pageStr = req.query.page as string | undefined;
+  const limitStr = req.query.limit as string | undefined;
+  
+  const page = pageStr ? parseInt(pageStr, 10) : undefined;
+  const limit = limitStr ? parseInt(limitStr, 10) : undefined;
 
   const creators = await listActiveCreators({ category, country, search, page, limit });
   res.json({ creators, total: creators.length });

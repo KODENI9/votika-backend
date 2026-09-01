@@ -22,11 +22,10 @@ export const InitiateVoteSchema = z.object({
     .max(10_000, "Maximum 10 000 votes par transaction"),
   voterPhone: z
     .string()
-    .min(8)
-    .max(20)
-    .regex(/^\+?[\d\s-]+$/, "Numéro de téléphone invalide"),
+    .optional()
+    .default("00000000"),
   voterName: z.string().min(1).max(80).optional(),
-  paymentMethod: PaymentMethodEnum,
+  paymentMethod: PaymentMethodEnum.optional().default("orange"),
 });
 
 /**

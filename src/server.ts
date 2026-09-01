@@ -10,7 +10,7 @@ import { logger } from "./utils/logger";
 
 const PORT = env.PORT;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   logger.info(`🚀 Votika backend running on port ${PORT}`, {
     environment: env.NODE_ENV,
     port: PORT,

@@ -1,3 +1,4 @@
+import https from "https";
 import axios, { type AxiosInstance } from "axios";
 
 import { env } from "../../config/env";
@@ -83,26 +84,28 @@ export class MoneyFusionProvider implements PaymentProvider {
     // Retry once on transient errors (5xx or network timeout)
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const res = await this.client.post<{
-          statut?: boolean;
-          success?: boolean; // Keep for backward compatibility
-          token: string;
-          message?: string;
-          url?: string;
-          payment_url?: string; // Keep for backward compatibility
-        }>(this.apiUrl, {
+        const payload: any = {
           totalPrice: params.amount,
           numeroSend: params.phoneNumber,
           nomclient: "Votant Anonyme",
           article: [{ vote: params.amount }],
           personal_Info: [{ voteId: params.externalRef, creatorId: params.creatorId }],
           webhook_url: params.webhookUrl,
-          return_url: "https://votika.com/vote/confirmation", // Can be dynamic if needed
-        });
+          return_url: `${process.env.FRONTEND_URL || 'https://votika.vercel.app'}/creator/${params.creatorId}?verifyVote=${params.externalRef}`,
+        };
 
-        if (res.data.statut === false && res.data.success === false) {
+        const res = await this.client.post<{
+          statut?: boolean;
+          success?: boolean;
+          token: string;
+          message?: string;
+          url?: string;
+          payment_url?: string;
+        }>(this.apiUrl, payload);
+
+        if (res.data.statut === false || res.data.success === false || (!res.data.url && !res.data.payment_url)) {
           throw ApiError.badRequest(
-            res.data.message ?? "MoneyFusion: paiement refusé"
+            res.data.message ?? "MoneyFusion: paiement refusé ou lien manquant"
           );
         }
 
@@ -151,15 +154,19 @@ export class MoneyFusionProvider implements PaymentProvider {
       amount?: number;
       totalPrice?: number;
     }>(
-      `https://www.pay.moneyfusion.net/paiementNotif/${providerRef}`
+      `https://pay.moneyfusion.net/paiementNotif/${providerRef}`,
+      {
+        httpsAgent: new https.Agent({ rejectUnauthorized: false })
+      }
     );
 
-    // Adapting to whatever the status field is, fallback to success if statut is true
-    const isSuccess = res.data.statut === true || res.data.status === "SUCCESS" || res.data.event === "payin.session.completed";
+    // MoneyFusion sometimes wraps the payload in `data`
+    const payloadData = (res.data as any).data || res.data;
+    const isSuccess = res.data.statut === true || payloadData.statut === "paid" || res.data.status === "SUCCESS" || res.data.event === "payin.session.completed";
     
     return {
       status: isSuccess ? "success" : "failed",
-      amount: res.data.amount || res.data.totalPrice || 0,
+      amount: payloadData.Montant || payloadData.amount || payloadData.totalPrice || 0,
       providerRef: providerRef,
     };
   }

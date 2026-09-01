@@ -62,31 +62,20 @@ async function buildTrendMap(
   if (creatorIds.length === 0) return {};
 
   const sinceTs = Timestamp.fromDate(since);
-
   const trendMap: Record<string, number> = {};
 
-  // Firestore `in` operator supports up to 10 values — chunk if needed
-  const chunks: string[][] = [];
-  for (let i = 0; i < creatorIds.length; i += 10) {
-    chunks.push(creatorIds.slice(i, i + 10));
+  const snap = await db
+    .collection("votes")
+    .where("createdAt", ">=", sinceTs)
+    .get();
+
+  for (const doc of snap.docs) {
+    const data = doc.data() as { creatorId: string; voteCount: number; status: string };
+    if (data.status === "confirmed" && creatorIds.includes(data.creatorId)) {
+      trendMap[data.creatorId] =
+        (trendMap[data.creatorId] ?? 0) + (data.voteCount ?? 0);
+    }
   }
-
-  await Promise.all(
-    chunks.map(async (chunk) => {
-      const snap = await db
-        .collection("votes")
-        .where("creatorId", "in", chunk)
-        .where("status", "==", "confirmed")
-        .where("createdAt", ">=", sinceTs)
-        .get();
-
-      for (const doc of snap.docs) {
-        const data = doc.data() as { creatorId: string; voteCount: number };
-        trendMap[data.creatorId] =
-          (trendMap[data.creatorId] ?? 0) + (data.voteCount ?? 0);
-      }
-    })
-  );
 
   return trendMap;
 }

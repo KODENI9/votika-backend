@@ -109,15 +109,26 @@ export const listTransactions = asyncHandler(async (req: Request, res: Response)
   res.json({ data: transactions, count: transactions.length });
 });
 
+const formatSettings = (s: any) => ({
+  voteUnitPrice: s.voteUnitPrice,
+  campaignActive: s.campaignActive,
+  campaignStartDate: s.campaignStartDate 
+    ? (typeof s.campaignStartDate === "string" ? s.campaignStartDate : s.campaignStartDate.toDate().toISOString()) 
+    : undefined,
+  campaignEndDate: s.campaignEndDate 
+    ? (typeof s.campaignEndDate === "string" ? s.campaignEndDate : s.campaignEndDate.toDate().toISOString()) 
+    : undefined,
+});
+
 /** GET /api/admin/settings */
 export const getSettingsHandler = asyncHandler(async (_req: Request, res: Response) => {
   const settings = await getSettings();
-  res.json({ data: settings });
+  res.json({ data: formatSettings(settings) });
 });
 
 /** PATCH /api/admin/settings */
 export const updateSettingsHandler = asyncHandler(async (req: Request, res: Response) => {
   const updated = await updateSettings(req.body as UpdateSettingsInput);
   logger.info("Admin updated settings", { updated });
-  res.json({ data: updated });
+  res.json({ data: formatSettings(updated) });
 });

@@ -16,7 +16,11 @@ app.use(
   cors({
     origin:
       env.NODE_ENV === "production"
-        ? process.env["FRONTEND_URL"] ?? false
+        ? [
+            process.env["FRONTEND_URL"] as string,
+            "https://votika.me",
+            "https://votika.vercel.app",
+          ].filter(Boolean)
         : true, // allow all origins in development
     credentials: true,
   })
