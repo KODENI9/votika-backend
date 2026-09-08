@@ -27,7 +27,6 @@ router.get("/:id", validate(CreatorIdParamSchema, "params"), getCreator);
 router.get(
   "/me",
   requireAuth,
-  requireRole("creator"),
   getMyProfile
 );
 
