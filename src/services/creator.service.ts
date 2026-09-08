@@ -9,6 +9,7 @@ import type { Creator, CreatorStatus } from "../models/creator.model";
 import type { CreateCreatorInput, UpdateCreatorInput, AdminUpdateCreatorInput } from "../schemas/creator.schema";
 import { ApiError } from "../utils/ApiError";
 import { logger } from "../utils/logger";
+import { clerkClient } from "@clerk/express";
 
 /**
  * Creator service — business logic layer.
@@ -121,6 +122,18 @@ export async function adminUpdateCreator(
   data: AdminUpdateCreatorInput
 ): Promise<Creator> {
   await requireCreator(id);
+  
+  if (data.status === "active") {
+    try {
+      await clerkClient.users.updateUserMetadata(id, {
+        publicMetadata: { role: "creator" }
+      });
+      logger.info("Assigned creator role in Clerk", { id });
+    } catch (err) {
+      logger.error("Failed to update Clerk user metadata", { id, err });
+    }
+  }
+  
   return updateCreator(id, data);
 }
 

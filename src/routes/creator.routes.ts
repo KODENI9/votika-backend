@@ -34,7 +34,6 @@ router.get(
 router.post(
   "/me",
   requireAuth,
-  requireRole("creator"),
   validate(CreateCreatorSchema),
   createMyProfile
 );
